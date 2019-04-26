@@ -3,8 +3,6 @@ package mcis.jsu.edu.crosswordmagic;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
 import android.content.Context;
-import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -115,6 +113,12 @@ public class CrosswordMagicViewModel extends ViewModel {
         return words.getValue();
     }
 
+    public void setLettersAt(char x, int row, int col) {
+        Character[][] letters = this.letters.getValue();
+        letters[row][col] = x;
+        this.letters.setValue(letters);
+    }
+
     /* Load Puzzle Data from Input File */
 
     private void getPuzzleData(int id) {
@@ -127,18 +131,31 @@ public class CrosswordMagicViewModel extends ViewModel {
         StringBuilder aString = new StringBuilder();
         StringBuilder dString = new StringBuilder();
 
+
+
         try {
 
-            // Read from the input file using the "br" input stream shown above.  Your program
-            // should get the puzzle height/width from the header row in the first line of the
-            // input file.  Replace the placeholder values shown below with the values from the
-            // file.  Get the data from the remaining rows, splitting each tab-delimited line
-            // into an array of strings, which you can use to initialize a Word object.  Add each
-            // Word object to the "wordMap" hash map; for the key names, use the box number
-            // followed by the direction (for example, "16D" for Box # 16, Down).
+            boolean header = true;
 
-            puzzleHeight.setValue(15); // DELETE THIS!
-            puzzleWidth.setValue(15); // DELETE THIS!
+            while((line = br.readLine()) != null){
+                fields = line.trim().split("\t");
+                if(header == true) {
+                    puzzleHeight.setValue(Integer.parseInt(fields[0]));
+                    puzzleWidth.setValue(Integer.parseInt(fields[1]));
+                    header = false;
+                }
+                else{
+                    Word word = new Word(fields);
+                    wordMap.put(word.getBox() + word.getDirection(), word);
+                    System.out.println(word.getDirection());
+                    if(word.getDirection().equals("A")){
+                        aString.append(word.getBox() + ": " + word.getClue() + "\n");
+                    }
+                    else{
+                        dString.append(word.getBox() + ": " + word.getClue() + "\n");
+                    }
+                }
+            }
 
         } catch (Exception e) {}
 
@@ -162,6 +179,17 @@ public class CrosswordMagicViewModel extends ViewModel {
             Word w = e.getValue();
 
             // INSERT YOUR CODE HERE
+            aNumbers[w.getRow()][w.getColumn()] = w.getBox();
+            if(w.getDirection().equals("A")){
+                for(int i = w.getColumn(); i < w.getColumn()+ w.getWord().length(); i++){
+                    aLetters[w.getRow()][i] = ' ';
+                }
+            }
+            else{
+                for(int i = w.getRow(); i < w.getRow() + w.getWord().length(); i++){
+                    aLetters[i][w.getColumn()] = ' ';
+                }
+            }
 
         }
 

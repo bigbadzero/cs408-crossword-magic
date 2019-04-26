@@ -1,6 +1,8 @@
 package mcis.jsu.edu.crosswordmagic;
 
+import android.app.AlertDialog;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -10,10 +12,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.support.v7.widget.GridLayout;
 import android.view.ViewGroup.LayoutParams;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+
 
 public class PuzzleFragmentView extends Fragment implements View.OnClickListener {
 
@@ -65,8 +70,8 @@ public class PuzzleFragmentView extends Fragment implements View.OnClickListener
 
         int gridSize = Math.max(puzzleHeight, puzzleWidth);
         int squareSizeDp = ( Math.min(fragmentHeightDp - overhead, fragmentWidthDp) / gridSize );
-        int letterSizeDp = (int)( squareSizeDp * 0.75 );
-        int numberSizeDp = (int)( squareSizeDp * 0.2 );
+        int letterSizeDp = (int)( squareSizeDp * 0.24 );
+        int numberSizeDp = (int)( squareSizeDp * 0.10 );
 
         /* Acquire GridLayout Container References */
 
@@ -171,6 +176,7 @@ public class PuzzleFragmentView extends Fragment implements View.OnClickListener
 
     private void updatePuzzleView() {
 
+
         /* Update View from Model */
 
         Character[][] letters = model.getLetters();
@@ -194,6 +200,19 @@ public class PuzzleFragmentView extends Fragment implements View.OnClickListener
             element.setText("" + letters[row][col]);
 
         }
+        boolean flag = true;
+        for(int i = 0; i < letters.length; i++){
+            List<Character> lettersList = Arrays.asList(Arrays.asList(letters).get(i));
+            if(lettersList.contains(' ')){
+                flag = false;
+                break;
+            }
+        }
+
+        if(flag){
+            Toast toast = Toast.makeText(getContext(), "You Win!", Toast.LENGTH_SHORT);
+            toast.show();
+        }
 
     }
 
@@ -208,29 +227,57 @@ public class PuzzleFragmentView extends Fragment implements View.OnClickListener
 
         /* Compute Row/Column/Index from Tag */
 
-        int row = Integer.parseInt(tag.substring(6, 8));
-        int col = Integer.parseInt(tag.substring(8));
+        final int row = Integer.parseInt(tag.substring(6, 8));
+        final int col = Integer.parseInt(tag.substring(8));
         int index = (row * model.getPuzzleHeight()) + col;
 
         /* Get Box Numbers from Model */
 
-        Integer[][] numbers = model.getNumbers();
+        final Integer[][] numbers = model.getNumbers();
 
         /* Was a number clicked?  If so, display it in a Toast */
 
         if (numbers[row][col] != 0) {
+            final EditText text = new EditText(getActivity());
 
-            Toast toast=Toast.makeText(getContext(), "You have just tapped Square " + numbers[row][col], Toast.LENGTH_SHORT);
-            toast.show();
-
-            /* Add an "X" to Clicked Square */
-
-            GridLayout squaresContainer = getActivity().findViewById(R.id.squaresContainer);
-            TextView element = (TextView) squaresContainer.getChildAt(index);
-            element.setText("X");
-
-            /* Update Grid Contents */
-
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage("Enter your answer: ")
+                    .setView(text)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            String entered = text.getText().toString();
+                            HashMap<String, Word> words = model.getWords();
+                            Toast toast=Toast.makeText(getContext(), "Incorrect guess please try again!", Toast.LENGTH_SHORT);
+                            if(words.containsKey(numbers[row][col] + "D") && words.get(numbers[row][col] + "D").getWord().equals(entered.toUpperCase())){
+                                int counter = 0;
+                                Word w = words.get(numbers[row][col] + "D");
+                                for(int i = w.getRow(); i < w.getRow() + w.getWord().length(); i++){
+                                    model.setLettersAt(w.getWord().charAt(counter),i,col);
+                                    counter++;
+                                }
+                                toast=Toast.makeText(getContext(), "Correct guess, Good Job!", Toast.LENGTH_SHORT);
+                            }
+                            if(words.containsKey(numbers[row][col] + "A") && words.get(numbers[row][col] + "A").getWord().equals(entered.toUpperCase())){
+                                int counter = 0;
+                                Word w = words.get(numbers[row][col] + "A");
+                                for(int i = w.getColumn(); i < w.getColumn()+ w.getWord().length(); i++){
+                                    model.setLettersAt(w.getWord().charAt(counter),row,i);
+                                    counter++;
+                                }
+                                toast=Toast.makeText(getContext(), "Correct guess, Good Job!", Toast.LENGTH_SHORT);
+                            }
+                            updatePuzzleView();
+                            toast.show();
+                        }
+                    }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            AlertDialog alert = builder.create();
+            alert.show();
             updatePuzzleView();
 
         }
